@@ -19,20 +19,19 @@ import (
 	"strings"
 
 	"golang.org/x/net/context"
+	"golang.org/x/net/http2"
 
 	"github.com/pkg/errors"
-	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
-	"google.golang.org/grpc/transport"
+	"google.golang.org/grpc/status"
 )
 
 func IsClosedConnection(err error) bool {
 	err = errors.Cause(err)
 
 	if err == context.Canceled ||
-		grpc.Code(err) == codes.Canceled ||
-		grpc.Code(err) == codes.Unavailable ||
-		grpc.ErrorDesc(err) == grpc.ErrClientConnClosing.Error() ||
+		status.Code(err) == codes.Canceled ||
+		status.Code(err) == codes.Unavailable ||
 		strings.Contains(err.Error(), "is closing") ||
 		strings.Contains(err.Error(), "tls: use of closed connection") ||
 		strings.Contains(err.Error(), "use of closed network connection") ||
@@ -41,7 +40,7 @@ func IsClosedConnection(err error) bool {
 		return true
 	}
 
-	if streamErr, ok := err.(transport.StreamError); ok && streamErr.Code == codes.Canceled {
+	if streamErr, ok := err.(http2.StreamError); ok && streamErr.Code == http2.ErrCodeCancel {
 		return true
 	}
 
