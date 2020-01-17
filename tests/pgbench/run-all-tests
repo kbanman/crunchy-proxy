@@ -1,0 +1,23 @@
+#!/usr/bin/env bash
+
+set -eouf pipefail
+
+export MASTER_PORT=5432
+export MASTER_HOST=master
+export PROXY_PORT=5432
+export PROXY_HOST=localhost
+export DATABASE=proxydb
+export PG_USER=postgres
+
+TIMEOUT=30
+INTERVAL=2
+until psql -h $MASTER_HOST -p $MASTER_PORT -U $PG_USER -c "select 1" > /dev/null 2>&1 || [ $TIMEOUT -le 0 ]; do
+  echo "Waiting for postgres, $((TIMEOUT-=INTERVAL))s remaining..."
+  sleep $INTERVAL
+done
+
+./run-large-result-test
+
+# These tests currently do not complete
+#./run-concurrency-test
+#./run-simple-load-test

@@ -12,7 +12,7 @@
 # License for the specific language governing permissions and limitations under
 # the License.
 
-.PHONY: all build clean clean-docs docs docker docker-push resolve install release run default
+.PHONY: all build clean clean-docs docs docker docker-push resolve install release run default test
 
 all: clean resolve build
 
@@ -68,3 +68,7 @@ docker:
 
 docker-push:
 	docker push crunchydata/crunchy-proxy:centos7-$(RELEASE_VERSION)
+
+test:
+	GOOS=linux go build -o build/crunchy-proxy .
+	docker-compose -f tests/pgbench/docker-compose.yaml up --build --abort-on-container-exit

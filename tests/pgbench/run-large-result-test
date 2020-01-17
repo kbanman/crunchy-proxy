@@ -1,0 +1,19 @@
+#!/usr/bin/env bash
+
+set -eouf pipefail
+
+echo "starting pgbench load test..."
+
+./init-tests
+
+echo "starting crunchy-proxy"
+killall crunchy-proxy || true
+./crunchy-proxy start --config=config.yaml&
+
+echo "start the large result test..."
+
+psql -h $PROXY_HOST -p $PROXY_PORT -U $PG_USER -c \
+  'select * from pgbench_accounts limit 5000;' \
+  $DATABASE
+
+echo "large result test ends."

@@ -13,27 +13,23 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-echo "starting pgbench load test..."
+set -eouf pipefail
 
-DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
-export PGPASSFILE=$DIR/pgpass
+./init-tests
 
-PORT=5432
-PROXY_HOST=localhost
-MASTER_HOST=master.crunchy.lab
-
-echo "Initialize the 'proxydb' database..."
-pgbench -h $MASTER_HOST -p $PORT  -U postgres -i proxydb
+echo "starting crunchy-proxy"
+killall crunchy-proxy || true
+./crunchy-proxy start --config=config.yaml&
 
 echo "start the load test..."
 
 pgbench \
 	-h $PROXY_HOST \
-	-p $PORT \
-	-U postgres \
-	-f $DIR/simple-load-test.sql \
+	-p $PROXY_PORT \
+	-U $PG_USER \
+	-f simple-load-test.sql \
 	-c 10 \
 	--no-vacuum \
-	-t 10000 proxydb
+	-t 30 $DATABASE
 
 echo "load test ends."

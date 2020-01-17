@@ -13,28 +13,25 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+set -eouf pipefail
+
 echo "starting pgbench load test..."
 
-DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
-export PGPASSFILE=$DIR/pgpass
+./init-tests
+psql -h $MASTER_HOST -p $MASTER_PORT -U $PG_USER -c 'create table proxytest (id int, name varchar(20), value varchar(20));' $DATABASE
 
-PORT=5432
-HOST=localhost
+echo "starting crunchy-proxy"
+killall crunchy-proxy || true
+./crunchy-proxy start --config=config.yaml&
 
-echo "refresh the proxydb database.."
-psql -h $HOST -p $PORT -U postgres -c 'drop database proxydb;' postgres
-psql -h $HOST -p $PORT -U postgres -c 'create database proxydb;' postgres
-pgbench -h master.crunchy.lab -p 5432 -U postgres -i proxydb
-psql -h $HOST -p $PORT -U postgres -c 'create table proxytest (id int, name varchar(20), value varchar(20));' proxydb
-
-echo "start the load test..."
+echo "start the concurrency test..."
 
 pgbench \
-	-h $HOST \
-	-p $PORT \
-	-U postgres \
-	-f $DIR/concurrency-test.sql \
+	-h $PROXY_HOST \
+	-p $PROXY_PORT \
+	-U $PG_USER \
+	-f concurrency-test.sql \
 	-c 4 \
-	-t 100 proxydb
+	-t 100 $DATABASE
 
 echo "concurrency test ends."
